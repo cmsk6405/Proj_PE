@@ -111,13 +111,18 @@ def get_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int
         angle_kpts: List of keypoints to get angle from. It should be 3 length
             long with the angle point in the middle
     """
-    # Get coords from the 3 points
-    a = kpts_coord[angle_kpts[0]]
-    b = kpts_coord[angle_kpts[1]]
-    c = kpts_coord[angle_kpts[2]]
 
-    # 나중에 확인하고 지우던가
-    # print(kpts_coord)
+    # 호출시 
+    # angles[k] = get_angle(mp_result.pose_landmarks, v)
+    # kpts_coord = 랜드마크
+    # angle_kpts = v 미리 구해야하는 랜드마크
+    # print(f"-------------{kpts_coord[angle_kpts[0]]}")
+    # print(f"-------------{kpts_coord[angle_kpts[0]].x}")
+
+    # Get coords from the 3 points
+    a = [kpts_coord[angle_kpts[0]].x, kpts_coord[angle_kpts[0]].y]
+    b = [kpts_coord[angle_kpts[1]].x, kpts_coord[angle_kpts[1]].y]
+    c = [kpts_coord[angle_kpts[2]].x, kpts_coord[angle_kpts[2]].y]
 
     # Calculate angle
     ang = math.degrees(
