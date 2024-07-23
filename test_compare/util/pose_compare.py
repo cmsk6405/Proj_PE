@@ -1,27 +1,15 @@
-from pathlib import Path
 from typing import Dict, List, Tuple, Optional
-
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-from torchvision.io import read_image
-from torchvision.ops import nms
-from torchvision.transforms import functional as F
-
 import mediapipe as mp
-from ultralytics import YOLO
 
+import cv2
+import numpy as np
+
+from util.count import count_repetition_angle, count_repetition_func
 from util.helpers import (
-    connect_skeleton,
     get_angle,
-    # have_cuda,
     kpts_angle,
-    # model,
-    transforms,
 )
 
-# 추가 import
-import cv2
-import torch
 
 
 class PoseCompare:
@@ -30,8 +18,19 @@ class PoseCompare:
         None
 
     def inference(self, frame,  yolo, pose, mp_pose) -> Tuple[Dict, Dict]:
+        """
+        create_model에서 생성된 모델을 전달받아서 frame들을 모델에 넣고 실행
+        get_angle를 통해서 각 부분의 각도를 계산
 
-        # Inference
+        Args:
+            frame (_type_): _description_
+            yolo (_type_): _description_
+            pose (_type_): _description_
+            mp_pose (_type_): _description_
+
+        Returns:
+            angles(dict) = 자세의 각도 계산결과
+        """
 
         # yolo result
         yolo_results = yolo(frame)[0]
@@ -52,6 +51,7 @@ class PoseCompare:
                 person_rgb = cv2.cvtColor(person_img, cv2.COLOR_BGR2RGB)
                 # media pipe result
                 mp_result = pose.process(person_rgb)
+                # TODO: 추후 삭제 필요
                 # 원본 프레임에 포즈 랜드마크 및 연결선 그리기
                 if mp_result.pose_landmarks:
                     mp_drawing.draw_landmarks(frame[int(y1):int(y2), int(x1):int(x2)], 
@@ -64,63 +64,24 @@ class PoseCompare:
                     for k, v in kpts_angle.items():
                         angles[k] = get_angle(mp_result.pose_landmarks.landmark, v)
 
-        #TODO : 추후에 angles, angles 수정
         return angles
 
 
-    def draw_one(self, trgt: str = "ref", include_angles: bool = True) -> Image:
-        """Draw reference or target image
 
-        Args:
-                trgt (str): Target image, acceptable input: ["trgt" or "ref"]
-                include_angles (bool): Write joint angles to image. Default to True
-        """
-        # ==== Setup ==== #
-        # ---- Variables ---- #
-        # Assign values based on target or reference image
-        if trgt == "ref":
-            angle = self.angle_ref
-            img = self.img_ref
-        else:
-            angle = self.angle_trgt
-            img = self.img_trgt
-
-        # Setup Font
-        font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-        font = ImageFont.truetype(font_path, size=20)
-
-        # ---- Image ---- #
-        # Copy image
-        img = img.copy()
-        # Establish draw object
-        img_draw = ImageDraw.Draw(img)
-
-        # Angles
-        if include_angles:
-            angle_str = "\n".join([f"{k}: {v}" for k, v in angle.items()])
-
-            img_draw.text((0, 0), angle_str, font=font)
-
-        return img
-
-
-#TODO: 함수 이름 추후 변경 필요
+    #TODO: 함수 이름 추후 변경 필요
     def draw_test(self, trgt: str = "ref"):
-        """
-        draw_trgt = self.draw_one(trgt="trgt", include_angles=False)
-        draw_ref = self.draw_one(trgt="ref", include_angles=False)
-        """
+        #이 함수 꼭 필요하지 않은 것 같음 추후 확인 후 삭제
+
         if trgt == "ref":
             angle = self.angle_ref
-            img = self.img_ref
             frame = self.tensor_ref
         else:
             angle = self.angle_trgt
-            img = self.img_trgt
             frame = self.tensor_trgt
         return frame, angle
 
     def compare(self, offset:int):
+        #TODO: 지금 비디오와 캠화면 하나로 합치는 부분과 결과ok 부분이 합쳐있는데 분리해야 할수도 있을듯
         """
 		compare_img = pose.draw_compare(fps=fps, offset=20)
         웹캠과 비디오를 받아서 하나로 만들기
@@ -128,32 +89,55 @@ class PoseCompare:
         fps 없어도 됨
         offset 설정만 있게
         """
+        # 그냥 self.tensor_ref로 불러도될것같음
         ref_frame, ref_angle = self.draw_test(trgt="ref")
         trgt_frame, trgt_angle = self.draw_test(trgt="trgt")
 
 
-        #TODO: all ok 조건 생각 
+        #TODO: all ok 조건 생각 - 현재는 모든 부분의 각도가 일정 오차 내여야만 all ok가 출력 - 60 ~ 70 퍼센트
+        #8개 항목중 5개 이상이면 o, 3~4개 세모,  1~2 x - ❌⭕🔺🔼⏺️🔺, ▲ ● ⨉
         # ---- Maximum Angle Diff Calculation ---- #
-        # Difference in angle
+        # Difference in angle - 동영상과 웹캠의 각도 차이 계산
         angle_diff = self.calc_angle_diff()
 
+
+
+
+        # 횟수 세기
+        # person_states = kpts_angle.copy()
+        # current_state, flag = count_repetition_angle(self.angle_ref, person_states)
+        # person_states = current_state
+        
+
+
+
+        # TODO: 굳이 출력할 필요없는 문장이라고 생각
         angle_diff_str = [f"Maximum Angle Diff: {offset}"]
 
-        all_ok = True
+        all_ok = ""
+        ok_cnt = 0
         for k, v in angle_diff.items():
             if abs(v) < offset:
                 status = f"OK ({v})"
+                ok_cnt += 1
             else:
                 status = f"NOT OK ({v})"
-                # If at least one is not OK then all_ok will be False
-                all_ok = False
+                # all_ok = False
+        if ok_cnt >= 5:
+            print("●")
+            all_ok = "O"
+        elif 3 <= ok_cnt and ok_cnt <= 4:
+            print("▲")
+            all_ok = "triangle"
+        else:
+            print("⨉")
+            all_ok = "X"
 
             angle_diff[k] = status
-        # 각도 계산 결과 str 만들기
+        # 각도 계산 결과 str 만들기 angle_diff_str이 리스트인데 굳이 join안쓰고 첨부터 str이면 될듯?
         angle_diff_str.extend([f"{k}: {v}" for k, v in angle_diff.items()])
         angle_diff_str.append(f"ALL OK: {all_ok}")
         angle_diff_str = "\n".join(angle_diff_str)
-        print(f"최종 텍스트 출력 테스트{angle_diff_str}")
 
         # 출력부 설정
         # 영상 출력
@@ -182,109 +166,35 @@ class PoseCompare:
         return hvcombined_frame
 
 
-#TODO: PIL을 이용한 출력 방법인데 이 방법을 사용하지 않을거라면 삭제 하면 될 것 같음(draw_one을 포함)
-    def draw_compare(self, fps: Optional[int] = None, offset: int = 20):
-        """Draw comparison between reference and trgt
-
-        Args:
-                fps (int, Optional): Display FPS information. If set to None no FPS will be output. Default to None
-                offset (int): Maximum Angle Diff. Default to 20
-        """
-        # ==== Setup ==== #
-        draw = Image.new("RGB", (1200, 600))
-        draw_ = ImageDraw.Draw(draw)
-        font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-        font = ImageFont.truetype(font_path, size=20)
-
-        # Draw inference
-        draw_ref = self.draw_one(trgt="ref", include_angles=False)
-        draw_trgt = self.draw_one(trgt="trgt", include_angles=False)
-
-        print(f"============================{type(draw_ref)}")
-        # Image Box
-        ref_box = draw_ref.resize((640, 480))
-        trgt_box = draw_trgt.resize((640, 480))
-
-        # Angle text
-        angle_ref = "\n".join([f"{k}: {v}" for k, v in self.angle_ref.items()])
-        angle_trgt = "\n".join([f"{k}: {v}" for k, v in self.angle_trgt.items()])
-
-        # ---- Maximum Angle Diff Calculation ---- #
-        # Difference in angle
-        angle_diff = self.calc_angle_diff()
-
-        angle_diff_str = [f"Maximum Angle Diff: {offset}"]
-
-        all_ok = True
-        for k, v in angle_diff.items():
-            if abs(v) < offset:
-                status = f"OK ({v})"
-            else:
-                status = f"NOT OK ({v})"
-                # If at least one is not OK then all_ok will be False
-                all_ok = False
-
-            angle_diff[k] = status
-
-        angle_diff_str.extend([f"{k}: {v}" for k, v in angle_diff.items()])
-        angle_diff_str.append(f"ALL OK: {all_ok}")
-        angle_diff_str = "\n".join(angle_diff_str)
-
-        # ==== Draw ==== #
-        # Ref/Trgt to Image
-        draw.paste(ref_box, (200, 150))
-        draw.paste(trgt_box, (800, 150))
-
-        # Straight Line in the middle
-        draw_.line([(600, 0), (600, 600)])
-
-        # Angles boxes
-        # draw_.text((10, 400), angle_ref, font=font)
-        # draw_.text((610, 400), angle_trgt, font=font)
-        draw_.text((610, 0), angle_diff_str, font=font)
-
-        # Who is who
-        # draw_.text((400, 0), "Reference", font=font)
-        # draw_.text((1000, 0), "Target", font=font)
-
-        # FPS
-        if fps is not None:
-            draw_.text((1100, 580), f"FPS: {int(fps)}", font=font)
-
-        return draw
-
-
     def load_img(self, frame, model, dest: str):
-        #TODO : 정말 필요한 부분만 확인해서 남기기
-        print(f"어디 img확인 - {dest}")
+        """
+        영상의 frame을 읽고 모델에 넣어 실행후 결과를 저장
+        frame = 영상의 frame
+        model = yolo, mp, mp 설정
+        dest = 입력값의 ref(비디오), trgt(웹캠) 설정
+        """
         angles = self.inference(frame, *model)
 
         # Assign image and output to the relevant spot.
         if dest == "trgt":
             self.angle_trgt = angles
             self.tensor_trgt = frame
-            self.img_trgt = F.to_pil_image(frame)
         else:
             self.angle_ref = angles
             self.tensor_ref = frame
-            self.img_ref = F.to_pil_image(frame)
 
 
 
     def calc_angle_diff(self) -> Dict[str, int]:
-        """Calculate target and reference's angle difference
-
-        Returns:
-                A dictionary containing the joint as key, angle difference as the value
         """
-
+        동영상과 웹캠간의 자세의 각도차이 계산
+        angle_diff = 각 부분별 각도 차이지만 mp가 사람을 찾지 못했을때 각 부분의 각도 값을 0으로 처리
+        Returns:
+                angle_diff(dict) = 동영상과 웹캠간의 자세의 각도차이 계산결과
+        """
         if len(self.angle_ref) == len(self.angle_trgt):
-            print("안에 들어옴")
             angle_diff = {k: self.angle_ref[k] - self.angle_trgt[k] for k in self.angle_ref}
-            print(f"-------------안에들어옴 - {angle_diff}")
         else:
-            print("예외됨")
             angle_diff = {'right_shoulder': 0, 'right_arm': 0, 'left_shoulder': 0, 'left_arm': 0, 'right_hip': 0, 'right_leg': 0, 'left_hip': 0, 'left_leg': 0}
-            print(f"-------------예외일때{angle_diff}")
 
         return angle_diff
