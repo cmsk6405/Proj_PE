@@ -50,6 +50,9 @@ def main():
 	video_models = create_model()
 	webcam_models = create_model()
 
+	vid_cnt = 0
+	cam_cnt = 0
+
 	while True:
         # Read from video
 		vid_ret, vid_frame = vid.read()
@@ -58,14 +61,14 @@ def main():
 			vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
 			continue
         # Inference video image
-		pose.load_img(frame=vid_frame, model=video_models, dest="ref") 
+		vid_cnt = pose.load_img(frame=vid_frame, model=video_models, dest="ref") 
 
         # Read from webcam
 		_, cam_frame = cam.read()
 		# 캠영상 좌우 반전
 		cam_frame = cv2.flip(cam_frame, 1)
         # Inference webcam image
-		pose.load_img(frame=cam_frame, model=webcam_models, dest="trgt") 
+		cam_cnt = pose.load_img(frame=cam_frame, model=webcam_models, dest="trgt") 
 
 		# Calculate FPS
 		new_frame_time = time.time()
@@ -81,6 +84,10 @@ def main():
         # Breakaway condition
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
+
+	vid.release()
+	cam.release()
+	cv2.destroyAllWindows()
 
 
 # 추후 config 필요시
