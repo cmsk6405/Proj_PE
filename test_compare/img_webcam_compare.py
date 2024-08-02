@@ -8,15 +8,9 @@ from util.pose_compare import PoseCompare
 import numpy as np
 import time
 
+from threading import Thread
 
 def create_model():
-	"""
-	비디오와 웹캠이 각각의 모델을 사용할 수 있도록 하는 모델 생성 함수
-
-	Returns:
-		yolo와 media pipe 모델과 설정
-	"""
-
 	yolo = YOLO('yolov8l-pose.pt')
 	mp_pose = mp.solutions.pose
 	pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.6, min_tracking_confidence=0.6)
@@ -24,12 +18,6 @@ def create_model():
 	return yolo, pose, mp_pose
 
 def main():
-	"""
-	비디오와 웹캠 읽기
-	모델 생성
-	자세비교
-	결과출력
-	"""
 
     # Initialize PoseCompare
 	pose = PoseCompare()
@@ -41,7 +29,9 @@ def main():
     # Load Webcam
 	cam = cv2.VideoCapture(0)
 	cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-
+	if not cam.isOpened():
+		print("Cannot open camera")
+		exit()
     # FPS 
 	prev_frame_time = 0
 	new_frame_time = 0
@@ -50,30 +40,46 @@ def main():
 	video_models = create_model()
 	webcam_models = create_model()
 
-	vid_cnt = 0
-	cam_cnt = 0
 
 	while True:
         # Read from video
 		vid_ret, vid_frame = vid.read()
-		# 비디오 끝나도 계속 재생되게 하기 필요에 따라 삭제
+
+		# 비디오 끝나도 계속 다시 재생
 		if not vid_ret:
 			vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
 			continue
+
         # Inference video image
-		vid_cnt = pose.load_img(frame=vid_frame, model=video_models, dest="ref") 
+		# pose.load_img(frame=vid_frame, model=video_models, dest="ref") 
+		vid_thrd = Thread(target=pose.load_img, args=(vid_frame, video_models, "ref"))
+		vid_thrd.start()
+		vid_thrd.join()
 
         # Read from webcam
-		_, cam_frame = cam.read()
+		cam_ret, cam_frame = cam.read()
 		# 캠영상 좌우 반전
 		cam_frame = cv2.flip(cam_frame, 1)
         # Inference webcam image
-		cam_cnt = pose.load_img(frame=cam_frame, model=webcam_models, dest="trgt") 
+		if not cam_ret:
+			print("Can't receive frame (stream end?). Exiting ...")
+			break
+		# pose.load_img(frame=cam_frame, model=webcam_models, dest="trgt")
+		cam_thrd = Thread(target=pose.load_img, args=(cam_frame, webcam_models, "trgt"))
+		cam_thrd.start()
+		cam_thrd.join()
+
 
 		# Calculate FPS
 		new_frame_time = time.time()
 		fps = 1/(new_frame_time - prev_frame_time)
 		prev_frame_time = new_frame_time
+
+		# pose.counting()
+		cnt_thrd = Thread(target = pose.counting)
+		cnt_thrd.start()
+		cnt_thrd.join()
+
 
 		# pose compare
 		compare_img = pose.compare(offset=20)

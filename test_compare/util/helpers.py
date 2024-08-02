@@ -2,21 +2,22 @@ import math
 from typing import List, Tuple
 
 
-import torch # gpu를 사용하지 않는다고 하였으니 필요없는 부분이 될 것 같음
-# # ---- Enable CUDA if available---- #
-# # Determine CUDA
-# have_cuda = torch.cuda.is_available()
-# # Enable CUDA for model
-# if have_cuda:
-#     device = torch.device("cuda")
-#     model.to(device)
-#     print("MODEL: CUDA Enabled")
-# else:
-#     print("MODEL: CUDA NOT Enabled")
+# 각도 횟수
+import mediapipe as mp
+mp_pose = mp.solutions.pose
 
+joint_pairs = [
+    ('Left Shoulder', mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.LEFT_ELBOW, mp_pose.PoseLandmark.LEFT_WRIST),
+    ('Right Shoulder', mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW, mp_pose.PoseLandmark.RIGHT_WRIST),
+    ('Left Elbow', mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.LEFT_ELBOW, mp_pose.PoseLandmark.LEFT_WRIST),
+    ('Right Elbow', mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW, mp_pose.PoseLandmark.RIGHT_WRIST),
+    ('Left Hip', mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+    ('Right Hip', mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE),
+    ('Left Knee', mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+    ('Right Knee', mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE)
+]
 
 # ==== Variable ==== #
-# 이건 그냥 정보용이라서 없어도 될듯
 # media pipe Keypoints mapping
 kpts_name = {
     "0" :" nose",
@@ -83,6 +84,8 @@ def get_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int
     b = [kpts_coord[angle_kpts[1]].x, kpts_coord[angle_kpts[1]].y]
     c = [kpts_coord[angle_kpts[2]].x, kpts_coord[angle_kpts[2]].y]
 
+    # print(f"각도 체크용 {a, b, c}")
+
     # Calculate angle
     ang = math.degrees(
         math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(a[1] - b[1], a[0] - b[0])
@@ -91,6 +94,7 @@ def get_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int
     # Sanity check, angle must be between 0-180
     ang = int(ang + 360 if ang < 0 else ang)
     ang = int(ang - 180 if ang > 270 else ang)
+
 
     return ang
 
