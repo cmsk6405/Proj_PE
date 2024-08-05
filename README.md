@@ -6,5 +6,3 @@ Ubuntu 22.04.4 LTS
 Python 3.10.13
 
 ```python img_webcam_compare.py```
-
-현재 관절의 각도차이를 이용하여 자세의 유사도를 구하고 있다.
