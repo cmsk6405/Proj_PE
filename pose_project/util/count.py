@@ -1,49 +1,6 @@
-# 각도
-import numpy as np
-
-
-def calculate_angle(a, b, c):
-    a = np.array(a)
-    b = np.array(b)
-    c = np.array(c)
-    
-    ba = a - b
-    bc = c - b
-    
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.arccos(cosine_angle)
-    
-    return np.degrees(angle)
-
-
-def count_repetition_angle(angles, previous_state, tolerance=80):
-    """
-    각 변화량을 통해서 자세 반복 카운팅
-    Args:
-        angles (_type_): mp의 3개의 lm을 이용해서 각도 계산
-        previous_state (_type_): ?
-        tolerance (int, optional): 임계값
-
-    Returns:
-        _type_: _description_
-    """
-    current_state = previous_state.copy()
-    flag = 0
-    for joint, angle in angles.items():
-        if angle > (180 - tolerance):
-            current_state[joint] = 1
-        elif angle < tolerance:
-            current_state[joint] = 0
-
-    if current_state != previous_state:
-        flag = 1
-
-    return current_state, flag
-
-
 
 # 이차함수
-def count_repetition_func(previous_pose, current_pose, previous_state, flag, tolerance=90):
+def count_repetition(previous_pose, current_pose, previous_state, flag, tolerance=90):
     """
     Determine the number of repetitions of the pose by using the x and y coordinates of the landmarks.
 
