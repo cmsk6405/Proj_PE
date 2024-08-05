@@ -2,5 +2,9 @@
 
 요가 동영상의 자세를 사용자가 따라하면 사용자가 어느정도 정확도로 따라했는지 알려준다.
 
-https://github.com/its-gazza/PoseCompare
-위의 코드와 yolov8 + mediapipe의 결합을 시도 중
+Ubuntu 22.04.4 LTS
+Python 3.10.13
+
+```python img_webcam_compare.py```
+
+현재 관절의 각도차이를 이용하여 자세의 유사도를 구하고 있다.
