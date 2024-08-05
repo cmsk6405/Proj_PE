@@ -4,14 +4,12 @@ import cv2
 
 from util.pose_compare import PoseCompare
 
-# TODO: 추후 필요에 따라 삭제
 import numpy as np
-import time
 
 
 def create_model():
 
-	yolo = YOLO('yolov8l-seg.pt')
+	yolo = YOLO('yolov8l-pose.pt')
 	mp_pose = mp.solutions.pose
 	pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.6, min_tracking_confidence=0.6)
 
@@ -32,9 +30,6 @@ def main():
 	if not cam.isOpened():
 		print("Cannot open camera")
 		exit()
-    # FPS 
-	prev_frame_time = 0
-	new_frame_time = 0
 
 	# model create
 	video_models = create_model()
@@ -63,11 +58,6 @@ def main():
 			break
 		pose.load_img(frame=cam_frame, model=webcam_models, dest="trgt")
 
-		# Calculate FPS
-		new_frame_time = time.time()
-		fps = 1/(new_frame_time - prev_frame_time)
-		prev_frame_time = new_frame_time
-
 		# pose counting
 		pose.counting()
 		# pose compare
@@ -91,16 +81,5 @@ def main():
 	cv2.destroyAllWindows()
 
 
-# 추후 config 필요시
-# import argparse
-
-# def get_args_parser():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("-c", "--config", default="./configs.py", type=str, help="configuration file")
-#     return parser
-
 if __name__ == "__main__":
-	# 추후 config 필요시
-	# args = get_args_parser().parse_args()
-    # exec(open(args.config).read())
 	main()

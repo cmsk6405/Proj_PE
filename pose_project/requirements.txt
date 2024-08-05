@@ -1,0 +1,6 @@
+fastdtw
+mediapipe
+numpy
+opencv-python
+scipy
+ultralytics
