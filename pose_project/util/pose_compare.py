@@ -4,7 +4,7 @@ import mediapipe as mp
 import cv2
 import numpy as np
 
-from util.count import count_repetition
+from util.count import count_repetition, count_repetition2
 from util.helpers import (
     get_angle,
     kpts_angle
@@ -15,6 +15,20 @@ from collections import defaultdict
 
 from fastdtw import fastdtw
 from scipy.spatial.distance import cosine
+
+
+mp_pose = mp.solutions.pose
+
+joint_pairs = [
+    ('Left Shoulder', mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.LEFT_ELBOW, mp_pose.PoseLandmark.LEFT_WRIST),
+    ('Right Shoulder', mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW, mp_pose.PoseLandmark.RIGHT_WRIST),
+    ('Left Elbow', mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.LEFT_ELBOW, mp_pose.PoseLandmark.LEFT_WRIST),
+    ('Right Elbow', mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW, mp_pose.PoseLandmark.RIGHT_WRIST),
+    ('Left Hip', mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+    ('Right Hip', mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE),
+    ('Left Knee', mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+    ('Right Knee', mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE)
+]
 
 
 class PoseCompare:
@@ -30,6 +44,9 @@ class PoseCompare:
         self.person_reps = defaultdict(int)
         self.person_previous_poses = {}
         self.person_flags = defaultdict(lambda: -1)
+
+        self.person_states2 = defaultdict(lambda: {joint[0]: 2 for joint in joint_pairs})
+        self.person_reps2 = defaultdict(int)
 
 
     def inference(self, frame,  yolo, pose, mp_pose, dest):
@@ -71,13 +88,14 @@ class PoseCompare:
 
 
                 if mp_result.pose_landmarks:
-
+                    
+                    if dest == "ref":
                     # landmark drawing
-                    mp_drawing.draw_landmarks(frame[y1:y2, x1:x2], 
-                                            mp_result.pose_landmarks, 
-                                            mp_pose.POSE_CONNECTIONS,
-                                            mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2),
-                                            mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=2))
+                        mp_drawing.draw_landmarks(frame[y1:y2, x1:x2], 
+                                                mp_result.pose_landmarks, 
+                                                mp_pose.POSE_CONNECTIONS,
+                                                mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2),
+                                                mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=2))
 
                     landmarks = mp_result.pose_landmarks.landmark
 
@@ -87,6 +105,14 @@ class PoseCompare:
                         for k, v in kpts_angle.items():
                             angles[k] = get_angle(landmarks, v)
 
+                    angles2 = {}
+                    for joint_name, start, mid, end in joint_pairs:
+                        start_point = np.array([landmarks[start].x, landmarks[start].y])
+                        mid_point = np.array([landmarks[mid].x, landmarks[mid].y])
+                        end_point = np.array([landmarks[end].x, landmarks[end].y])
+                        
+                        angle = self.calculate_angle(start_point, mid_point, end_point)
+                        angles2[joint_name] = angle
 
                     # save the info separately for webcam and video.
                     person_id = f"person_{id}"
@@ -94,7 +120,9 @@ class PoseCompare:
                         self.cam_person_info[person_id] = {
                                             'bbox': (x1, y1, x2, y2),
                                             'angles': angles,
-                                            'landmarks': landmarks
+                                            'landmarks': landmarks,
+                                            'angles2': angles2,
+                                            
                                             }
                     else:
                         self.video_person_info = {
@@ -103,60 +131,20 @@ class PoseCompare:
                                             'landmarks': landmarks
                                             }
 
+    def calculate_angle(self, a, b, c):
+        a = np.array(a)
+        b = np.array(b)
+        c = np.array(c)
+        
+        ba = a - b
+        bc = c - b
+        
+        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+        angle = np.arccos(cosine_angle)
+        
+        return np.degrees(angle)
 
-    def count_repetition_func(previous_pose, current_pose, previous_state, flag, tolerance=90):
-        """
-        Determine the number of repetitions of the pose by using the x and y coordinates of the landmarks.
 
-        Args:
-            previous_pose : landmarks of the previous frame
-            current_pose : person land mark
-            previous_state : Check the changes in each part
-            flag : pose change flag
-            tolerance : threshold. Defaults to 90.
-
-        Returns:
-            current_pose : be the previous_pose
-            current_state.copy() : copy the current_pose
-            flag : flag after calculation
-        """
-
-        if current_pose is None or len(current_pose) == 0:
-            return previous_pose, previous_state, flag
-        else:
-            current_state = previous_state.copy()
-            sdx, sdy = 0, 0
-
-            # MediaPipe uses 33 landmarks.
-            for i in range(33):  
-                dx = current_pose[i].x - previous_pose[i].x
-                dy = current_pose[i].y - previous_pose[i].y
-
-                # Normalize the tolerance by dividing it by 100 to fit it into a 0-1 scale
-                if abs(dx) < tolerance / 100:  
-                    dx = 0
-                if abs(dy) < tolerance / 100:
-                    dy = 0
-
-                sdx += dx
-                sdy += dy
-
-            # Update the current_state with pose changes based on the variations in x and y
-            if sdx > (tolerance * 3 / 100):
-                current_state[0] = 1
-            elif sdx < (tolerance * -3 / 100):
-                current_state[0] = 0
-            if sdy > (tolerance * 3 / 100):
-                current_state[1] = 1
-            elif sdy < (tolerance * -3 / 100):
-                current_state[1] = 0
-            
-            # Calculate the flag if a pose change is detected.
-            if current_state != previous_state:
-                flag = (flag + 1) % 2
-            
-            return current_pose, current_state.copy(), flag
-    
     def counting(self):
         """
         repetition pose counting and put result text
@@ -164,8 +152,10 @@ class PoseCompare:
 
         trgt_frame = self.frame_trgt        
 
+        result_str = ""
+
         for person_id, result in self.cam_person_info.items():
-            cam_x1, cam_y1, cam_x2, cam_y2 = result['bbox']
+            cam_x1, cam_y1, _, _ = result['bbox']
             cam_person_landmarks = result['landmarks']
 
             if person_id not in self.person_previous_poses:
@@ -187,8 +177,12 @@ class PoseCompare:
                 self.person_flags[person_id] = -1
 
             
-            result_str = f"func: {self.person_reps[person_id]} "
+            result_str = f"count: {self.person_reps[person_id]} "
             cv2.putText(trgt_frame, result_str, (cam_x1, cam_y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+        
+            
+
 
 
     def compare(self, offset:int):

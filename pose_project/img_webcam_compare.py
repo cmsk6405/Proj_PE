@@ -76,10 +76,10 @@ def main():
 			vid_frame = cv2.resize(vid_frame, (960 , 720))
 			cam_frame = cv2.resize(cam_frame, (960, 720))
 			# 비디오와 웹캠 합치기
-			hcombine_frame = np.hstack((vid_frame,cam_frame))
+			combine_frame = np.vstack((vid_frame,cam_frame))
 			
 			# Show Result
-			cv2.imshow("Compare", hcombine_frame)
+			cv2.imshow("Compare", combine_frame)
 
 		frame_count += 1
 
