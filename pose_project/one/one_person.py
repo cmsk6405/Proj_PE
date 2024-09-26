@@ -6,8 +6,12 @@ from util.pose_compare import PoseCompare
 
 import numpy as np
 
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+####################
+import time
+####################
+
+# import os
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 
 def create_model():
@@ -36,10 +40,21 @@ def main():
 	video_models = create_model()
 	webcam_models = create_model()
 
+	###################################
+	prev_time = time.time()  # For FPS calculation
+	###################################
+
+
 	skip_frames = 3
 	frame_count = 0
 
 	while True:
+		###########################################
+		start_t = time.time()
+		###########################################
+
+
+
         # Read from video
 		vid_ret, vid_frame = vid.read()
 
@@ -67,9 +82,20 @@ def main():
 		# pose compare
 		pose.compare(offset=20)
 
+		#############################################################
+		# Calculate FPS
+		curr_time = time.time()
+		fps = 1 / (curr_time - prev_time)
+		prev_time = curr_time
+		#############################################################
+
+
+
 		# frame 사이즈 조정
 		vid_frame = cv2.resize(vid_frame, (960 , 720))
 		cam_frame = cv2.resize(cam_frame, (960, 720))
+		cv2.putText(cam_frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
 		# 비디오와 웹캠 합치기
 		combine_frame = np.hstack((vid_frame,cam_frame))
 		

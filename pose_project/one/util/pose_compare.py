@@ -7,7 +7,8 @@ import numpy as np
 from util.count import count_repetition, count_repetition2
 from util.helpers import (
     get_angle,
-    kpts_angle
+    kpts_angle,
+    get_vec_angle
 )
 
 
@@ -87,40 +88,30 @@ class PoseCompare:
                                     mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=2))
 
             landmarks = mp_result.pose_landmarks.landmark
+            if landmarks:
 
-            # Calculate angle
-            angles = {}
-            if mp_result.pose_landmarks != None:
-                for k, v in kpts_angle.items():
-                    angles[k] = get_angle(landmarks, v)
+                # Calculate angle
+                angles = {}
+                if mp_result.pose_landmarks != None:
+                    for k, v in kpts_angle.items():
+                        angles[k] = get_angle(landmarks, v)
+                        get_vec_angle(landmarks, v)
 
-            angles2 = {}
-            for joint_name, start, mid, end in joint_pairs:
-                start_point = np.array([landmarks[start].x, landmarks[start].y])
-                mid_point = np.array([landmarks[mid].x, landmarks[mid].y])
-                end_point = np.array([landmarks[end].x, landmarks[end].y])
-                
-                angle = self.calculate_angle(start_point, mid_point, end_point)
-                angles2[joint_name] = angle
-
-            # save the info separately for webcam and video.
-            if dest =="trgt":
-                self.cam_person_info = {
-                                    # 'bbox': (x1, y1, x2, y2),
-                                    'angles': angles,
-                                    'landmarks': landmarks,
-                                    # 'angles2': angles2,
-                                    
-                                    }
-            else:
-                self.video_person_info = {
-                                    # 'bbox': (x1, y1, x2, y2),
-                                    'angles': angles,
-                                    'landmarks': landmarks
-                                    }
-                
-        h, w, _ = frame.shape
-        self.test_x, self.test_y = int(landmarks[0].x * w), int(landmarks[0].y * h)
+                # save the info separately for webcam and video.
+                if dest =="trgt":
+                    self.cam_person_info = {
+                                        'angles': angles,
+                                        'landmarks': landmarks,
+                                        }
+                else:
+                    self.video_person_info = {
+                                        'angles': angles,
+                                        'landmarks': landmarks
+                                        }
+                    
+            h, w, _ = frame.shape
+            if landmarks[0]:
+                self.test_x, self.test_y = int(landmarks[0].x * w), int(landmarks[0].y * h)
 
 
 
@@ -152,28 +143,30 @@ class PoseCompare:
         #     print(f"result = {result}")
         #     cam_person_landmarks = result['landmarks']
 
-        if len(self.person_previous_poses) < 1:
-            self.person_previous_poses = self.cam_person_info['landmarks']
+        
 
-        # 함수 횟수 세기
-        previous_pose, current_state, flag = count_repetition(
-            self.person_previous_poses, 
-            self.cam_person_info['landmarks'],
-            self.person_states,
-            self.person_flags
-        )
-        self.person_previous_poses = previous_pose
-        self.person_states = current_state 
-        self.person_flags = flag
+        if 'landmarks' in self.cam_person_info:
+            if len(self.person_previous_poses) < 1:
+                self.person_previous_poses = self.cam_person_info['landmarks']
+            # 함수 횟수 세기
+            previous_pose, current_state, flag = count_repetition(
+                self.person_previous_poses, 
+                self.cam_person_info['landmarks'],
+                self.person_states,
+                self.person_flags
+            )
+            self.person_previous_poses = previous_pose
+            self.person_states = current_state 
+            self.person_flags = flag
 
-        if flag == 1:
-            self.person_reps += 1
-            self.person_flags = -1
+            if flag == 1:
+                self.person_reps += 1
+                self.person_flags = -1
 
-        # h, w, _ = trgt_frame.shape
-        # x, y = int(self.cam_person_info["landmarks"][0].x * w), int(self.cam_person_info["landmarks"][0].y * h)
-        result_str = f"count: {self.person_reps} "
-        cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            # h, w, _ = trgt_frame.shape
+            # x, y = int(self.cam_person_info["landmarks"][0].x * w), int(self.cam_person_info["landmarks"][0].y * h)
+            result_str = f"count: {self.person_reps} "
+            cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
         
 
@@ -186,24 +179,27 @@ class PoseCompare:
         Args:
             offset (int): Threshold for the difference between poses
         """
+        # 정확도 거리는데 offset만 조절해보기
 
         trgt_frame = self.frame_trgt
 
-        cam_person_angles = self.cam_person_info['angles']      
+        if 'angles' in self.cam_person_info:
+            cam_person_angles = self.cam_person_info['angles']      
 
-        # calculate angle difference
-        angle_diff = self.calc_angle_diff(cam_person_angles)
-        # # 결과 문자열 생성
-        ok_cnt = sum(1 for v in angle_diff.values() if abs(v) < offset)
-        if ok_cnt >= 5:
-            all_ok = "O"
-        elif 3 <= ok_cnt <= 4:
-            all_ok = "triangle"
-        else:
-            all_ok = "X"
-        
-        result_str = f"ALL OK: {all_ok}" 
-        cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            # calculate angle difference
+            angle_diff = self.calc_angle_diff(cam_person_angles)
+            # # 결과 문자열 생성
+            ok_cnt = sum(1 for v in angle_diff.values() if abs(v) < offset)
+            if ok_cnt >= 5:
+                all_ok = "O"
+            elif 3 <= ok_cnt <= 4:
+                all_ok = "triangle"
+            else:
+                all_ok = "X"
+            
+            result_str = f"ALL OK: {all_ok}" 
+            # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv2.putText(trgt_frame, result_str, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
 
             # if use fastdtw

@@ -68,19 +68,53 @@ def get_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int
     a = [kpts_coord[angle_kpts[0]].x, kpts_coord[angle_kpts[0]].y]
     b = [kpts_coord[angle_kpts[1]].x, kpts_coord[angle_kpts[1]].y]
     c = [kpts_coord[angle_kpts[2]].x, kpts_coord[angle_kpts[2]].y]
-
-    # print(f"각도 체크용 {a, b, c}")
+    
 
     # Calculate angle
     ang = math.degrees(
         math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(a[1] - b[1], a[0] - b[0])
     )
 
+    # 양수로만 만들었을때 음수일때 360 더해주기만 하기
     # Sanity check, angle must be between 0-180
     ang = int(ang + 360 if ang < 0 else ang)
     ang = int(ang - 180 if ang > 270 else ang)
 
+    print(f"ang = {ang}")
 
     return ang
 
 
+import numpy as np
+
+def get_vec_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int]]):
+    """
+    Calculate the joint angles using the landmarks of each joint required for pose comparison.
+
+    Args:
+        kpts_coord : landmarks
+        angle_kpts : kpts_angle
+
+    Returns:
+        ang: calculated angle
+    """
+    
+     # 벡터 정의
+    vector1 = np.array([kpts_coord[angle_kpts[0]].x - kpts_coord[angle_kpts[1]].x, kpts_coord[angle_kpts[0]].y -  kpts_coord[angle_kpts[1]].y,  kpts_coord[angle_kpts[0]].z -  kpts_coord[angle_kpts[1]].z])
+    vector2 = np.array([kpts_coord[angle_kpts[2]].x - kpts_coord[angle_kpts[1]].x, kpts_coord[angle_kpts[2]].y -  kpts_coord[angle_kpts[1]].y,  kpts_coord[angle_kpts[2]].z -  kpts_coord[angle_kpts[1]].z])
+    
+    # 벡터 크기
+    magnitude1 = np.linalg.norm(vector1)
+    magnitude2 = np.linalg.norm(vector2)
+    
+    # 내적
+    dot_product = np.dot(vector1, vector2)
+    
+    # 각도 계산 (라디안)
+    angle_rad = np.arccos(dot_product / (magnitude1 * magnitude2))
+    
+    # 각도를 도(degree)로 변환
+    angle_deg = np.degrees(angle_rad)
+    
+    print(f"angle_deg = {angle_deg}")
+    return angle_deg
