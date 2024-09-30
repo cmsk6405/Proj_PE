@@ -193,6 +193,7 @@ class PoseCompare:
 
         trgt_frame = self.frame_trgt
 
+        # 기존 x,y 각도 비교
         if 'angles' in self.cam_person_info:
             cam_person_angles = self.cam_person_info['angles']
             vid_person_angles = self.video_person_info['angles']
@@ -214,6 +215,7 @@ class PoseCompare:
             print(f"angle_diff = {angle_diff}")
 
 
+        # x,y,z 벡터 각도 비교1
         if 'vec' in self.cam_person_info:
             cam_vec_angle = self.cam_person_info['vec']
             vid_vec_angle = self.video_person_info['vec']
@@ -235,6 +237,7 @@ class PoseCompare:
             print(f"vec_diff = {vec_diff}")
 
 
+        # x,y,z 벡터 각도 비교2
         if 'vec2' in self.cam_person_info:
             cam_vec_angle2 = self.cam_person_info['vec2']
             vid_vec_angle2 = self.video_person_info['vec2']
@@ -256,25 +259,7 @@ class PoseCompare:
             print(f"vec_diff2 = {vec_diff2}")
 
 
-        if 'landmarks' in self.cam_person_info:
-            cam_pose = self.cam_person_info['landmarks_arr']
-            vid_pose = self.video_person_info['landmarks_arr']
 
-            distance = float(np.linalg.norm(cam_pose - vid_pose))
-
-            if distance < 0.2:
-                dist_ok = "O"
-            elif distance < 0.5 and 0.2 <= distance :
-                dist_ok = "triangle"
-            else:
-                dist_ok = "X"
-                
-            similarity = str(f"{1 / (1 + distance):.2f}")
-            dist_str = f"dist: {dist_ok}, {similarity}"
-            cv2.putText(trgt_frame, dist_str, (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            
-            print(f"similarity = {similarity}")
-            
         
 
 
