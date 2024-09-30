@@ -25,7 +25,7 @@ def count_repetition(previous_pose, current_pose, previous_state, flag, toleranc
         sdx, sdy = 0, 0
 
         # MediaPipe uses 33 landmarks.
-        for i in range(11, 33):
+        for i in range(11, 29):
             dx = current_pose[i].x - previous_pose[i].x
             dy = current_pose[i].y - previous_pose[i].y
             # print(f"dx, dy = {dx, dy}")

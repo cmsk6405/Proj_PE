@@ -80,7 +80,7 @@ def main():
 		# # pose counting
 		pose.counting()
 		# pose compare
-		pose.compare(offset=20)
+		pose.compare()
 
 		#############################################################
 		# Calculate FPS
