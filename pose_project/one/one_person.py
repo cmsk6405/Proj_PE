@@ -94,7 +94,7 @@ def main():
 		# frame 사이즈 조정
 		vid_frame = cv2.resize(vid_frame, (960 , 720))
 		cam_frame = cv2.resize(cam_frame, (960, 720))
-		cv2.putText(cam_frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+		# cv2.putText(cam_frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
 		# 비디오와 웹캠 합치기
 		combine_frame = np.hstack((vid_frame,cam_frame))

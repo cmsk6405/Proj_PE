@@ -123,30 +123,3 @@ def get_vec_angle(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int,
 
     return angle_deg
 
-def get_vec_angle2(kpts_coord: List[Tuple[int, int]], angle_kpts: List[Tuple[int, int]]):
-    """
-    Calculate the joint angles using the landmarks of each joint required for pose comparison.
-
-    Args:
-        kpts_coord : landmarks
-        angle_kpts : kpts_angle
-
-    Returns:
-        ang: calculated angle
-    """
-    
-     # 벡터 정의
-    vector1 = np.array([kpts_coord[angle_kpts[0]].x - kpts_coord[angle_kpts[1]].x,
-                        kpts_coord[angle_kpts[0]].y - kpts_coord[angle_kpts[1]].y,
-                        kpts_coord[angle_kpts[0]].z - kpts_coord[angle_kpts[1]].z])
-    vector2 = np.array([kpts_coord[angle_kpts[2]].x - kpts_coord[angle_kpts[1]].x,
-                        kpts_coord[angle_kpts[2]].y - kpts_coord[angle_kpts[1]].y,
-                        kpts_coord[angle_kpts[2]].z - kpts_coord[angle_kpts[1]].z])
-
-
-    dot_product = np.dot(vector1, vector2)
-    magnitudes = np.linalg.norm(vector1) * np.linalg.norm(vector2)
-    cos_angle = dot_product / magnitudes
-    angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-    
-    return angle
