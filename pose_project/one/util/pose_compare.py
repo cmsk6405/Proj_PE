@@ -201,10 +201,10 @@ class PoseCompare:
             # calculate angle difference
             angle_diff = self.calc_angle_diff(cam_person_angles, vid_person_angles)
             # # 결과 문자열 생성
-            ok_cnt = sum(1 for v in angle_diff.values() if abs(v) < offset)
-            if ok_cnt >= 5:
+            ok_cnt = sum(1 for v in angle_diff.values() if abs(v) < 15)
+            if ok_cnt == 8:
                 all_ok = "O"
-            elif 3 <= ok_cnt <= 4:
+            elif 5 <= ok_cnt <= 7:
                 all_ok = "triangle"
             else:
                 all_ok = "X"
@@ -213,6 +213,7 @@ class PoseCompare:
             # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             cv2.putText(trgt_frame, result_str, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             print(f"angle_diff = {angle_diff}")
+            
 
 
         # x,y,z 벡터 각도 비교1
@@ -223,14 +224,15 @@ class PoseCompare:
              # calculate angle difference
             vec_diff = self.calc_angle_diff(cam_vec_angle, vid_vec_angle)
             # # 결과 문자열 생성
-            vec_ok_cnt = sum(1 for v in vec_diff.values() if abs(v) < offset)
-            if vec_ok_cnt >= 5:
+            vec_ok_cnt = sum(1 for v in vec_diff.values() if abs(v) < 14.5)
+            if vec_ok_cnt == 8:
                 vec_ok = "O"
-            elif 3 <= vec_ok_cnt <= 4:
+            elif 5 <= vec_ok_cnt <= 7:
                 vec_ok = "triangle"
             else:
                 vec_ok = "X"
             
+
             vec_result_str = f"vector: {vec_ok}" 
             # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             cv2.putText(trgt_frame, vec_result_str, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
@@ -245,10 +247,10 @@ class PoseCompare:
              # calculate angle difference
             vec_diff2 = self.calc_angle_diff(cam_vec_angle2, vid_vec_angle2)
             # # 결과 문자열 생성
-            vec_ok_cnt2 = sum(1 for v in vec_diff2.values() if abs(v) < 0.5)
-            if vec_ok_cnt2 >= 5:
+            vec_ok_cnt2 = sum(1 for v in vec_diff2.values() if abs(v) < 0.25)
+            if vec_ok_cnt2 == 8:
                 vec_ok2 = "O"
-            elif 3 <= vec_ok_cnt2 <= 4:
+            elif 5 <= vec_ok_cnt2 <= 7:
                 vec_ok2 = "triangle"
             else:
                 vec_ok2 = "X"
@@ -259,8 +261,6 @@ class PoseCompare:
             print(f"vec_diff2 = {vec_diff2}")
 
 
-
-        
 
 
             # if use fastdtw
