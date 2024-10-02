@@ -172,7 +172,7 @@ class PoseCompare:
             # x, y = int(self.cam_person_info["landmarks"][0].x * w), int(self.cam_person_info["landmarks"][0].y * h)
             result_str = f"count: {self.person_reps} "
             # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 250), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            cv2.putText(trgt_frame, result_str, (150,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv2.putText(trgt_frame, result_str, (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
         
 
@@ -208,10 +208,9 @@ class PoseCompare:
             else:
                 all_ok = "X"
             
-            result_str = f"angle: {all_ok}" 
+            result_str = f"angle_compare: {all_ok}" 
             # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             cv2.putText(trgt_frame, result_str, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            print(f"angle_diff = {angle_diff}")
             
 
 
@@ -235,10 +234,9 @@ class PoseCompare:
                 vec_ok = "X"
             
 
-            vec_result_str = f"vector: {vec_ok}" 
+            vec_result_str = f"vector_compare: {vec_ok}" 
             # cv2.putText(trgt_frame, result_str, (self.test_x, self.test_y - 230), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             cv2.putText(trgt_frame, vec_result_str, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            print(f"vec_diff = {vec_diff}")
 
 
 
